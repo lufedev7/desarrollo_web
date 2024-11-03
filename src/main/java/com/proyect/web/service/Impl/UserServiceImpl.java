@@ -1,10 +1,11 @@
-package com.proyect.web.service;
+package com.proyect.web.service.Impl;
 
 import com.proyect.web.dtos.user.UserDTO;
 import com.proyect.web.entitys.User;
 import com.proyect.web.exceptions.UserAlreadyExistsException;
 import com.proyect.web.exceptions.UserNotFoundException;
 import com.proyect.web.repository.UserRepository;
+import com.proyect.web.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.DataIntegrityViolationException;

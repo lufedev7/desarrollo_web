@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -23,9 +25,9 @@ public class Product {
     @Column(nullable = false, length = 100)
     private String productName;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "product_category_id")
-//    private ProductCategory category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_category_id")
+    private ProductCategory category;
 
     @Column(columnDefinition = "TEXT")
     private String productDescription;
@@ -44,9 +46,9 @@ public class Product {
 
     private Boolean isSold = false;
 
-//    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<ProductImage> images = new ArrayList<>();
-//
-//    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private ProductStock stock;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductImage> images = new ArrayList<>();
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductStock stock;
 }
