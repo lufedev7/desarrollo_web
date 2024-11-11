@@ -1,17 +1,24 @@
 package com.proyect.web.service.Impl;
 
 import com.proyect.web.dtos.user.UserDTO;
+import com.proyect.web.dtos.user.UserResponseDTO;
+import com.proyect.web.entitys.Rol;
 import com.proyect.web.entitys.User;
-import com.proyect.web.exceptions.UserAlreadyExistsException;
-import com.proyect.web.exceptions.UserNotFoundException;
+import com.proyect.web.exceptions.ResourceNotFoundException;
+import com.proyect.web.exceptions.WebException;
+import com.proyect.web.repository.RolRepository;
 import com.proyect.web.repository.UserRepository;
 import com.proyect.web.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,100 +26,71 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    @Autowired
+    private  UserRepository userRepository;
+    @Autowired
+    private RolRepository rolRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Override
-    @Transactional
-    public UserDTO createUser(UserDTO userDTO) {
-        // Validar username
-        if (userDTO.getUserName() == null || userDTO.getUserName().trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre de usuario es requerido");
-        }
-        if (userRepository.existsByUserName(userDTO.getUserName())) {
-            throw new UserAlreadyExistsException("El nombre de usuario ya existe: " + userDTO.getUserName());
-        }
+    public UserResponseDTO createUser(UserDTO userDTO) {
 
-        // Validar email
-        if (userDTO.getEmail() == null || userDTO.getEmail().trim().isEmpty()) {
-            throw new IllegalArgumentException("El email es requerido");
-        }
-        if (userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new UserAlreadyExistsException("El email ya existe: " + userDTO.getEmail());
-        }
+        User user = mapToEntity(userDTO);
 
-        // Validar userImage si está presente
-        if (userDTO.getUserImage() != null && !userDTO.getUserImage().trim().isEmpty()) {
-            if (userRepository.existsByUserImage(userDTO.getUserImage())) {
-                throw new UserAlreadyExistsException("La imagen de usuario ya existe");
-            }
-        }
+        user.setEmail(userDTO.getEmail());
+        user.setUserImage(userDTO.getUserImage());
+        user.setPhoneNumber(userDTO.getPhoneNumber());
+        user.setUserName(userDTO.getUserName());
+        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        user.setSeller(userDTO.isSeller());
 
+        Rol roles = rolRepository.findByName("ROLE_USER").get();
+        user.setRoles(Collections.singleton(roles));
+        User newUser = userRepository.save(user);
+        return mapToResponseDTO(newUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> getAll() {
         try {
-            User user = mapearEntity(userDTO);
-            User newUser = userRepository.save(user);
-            return mapearDTO(newUser);
-        } catch (DataIntegrityViolationException e) {
-            throw new UserAlreadyExistsException("Error al crear el usuario: datos duplicados");
+            List<User> users = userRepository.findAll();
+            if(users.isEmpty()) {
+                throw new ResourceNotFoundException("Usuarios", "lista", 0);
+            }
+            return users.stream()
+                    .map(this::mapToResponseDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new WebException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al obtener la lista de usuarios");
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserDTO> getAll() {
-        return userRepository.findAll().stream()
-                .map(this::mapearDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public UserDTO findByUserId(Long id) {
+    public UserResponseDTO findByUserId(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + id));
-        return mapearDTO(user);
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "ID", id));
+        return mapToResponseDTO(user);
     }
 
     @Override
     @Transactional
-    public UserDTO updateUser(UserDTO userDTO, Long id) {
+    public UserResponseDTO updateUser(UserDTO userDTO, Long id) {
         User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "ID", id));
 
-        // Validar username
-        if (userRepository.existsByUserName(userDTO.getUserName()) &&
-                !existingUser.getUserName().equals(userDTO.getUserName())) {
-            throw new UserAlreadyExistsException("El nombre de usuario ya existe: " + userDTO.getUserName());
-        }
-
-        // Validar email
-        if (userRepository.existsByEmail(userDTO.getEmail()) &&
-                !existingUser.getEmail().equals(userDTO.getEmail())) {
-            throw new UserAlreadyExistsException("El email ya existe: " + userDTO.getEmail());
-        }
-
-        // Validar userImage
-        if (userDTO.getUserImage() != null && !userDTO.getUserImage().equals(existingUser.getUserImage())) {
-            if (userRepository.existsByUserImage(userDTO.getUserImage())) {
-                throw new UserAlreadyExistsException("La imagen de usuario ya existe");
-            }
-        }
+        validateUpdateUser(userDTO, existingUser);
 
         try {
-            existingUser.setUserName(userDTO.getUserName());
-            existingUser.setEmail(userDTO.getEmail());
-            existingUser.setPhoneNumber(userDTO.getPhoneNumber());
-            if (userDTO.getUserImage() != null) {
-                existingUser.setUserImage(userDTO.getUserImage());
-            }
-            if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-                existingUser.setPassword(userDTO.getPassword());
-            }
-
+            updateUserFields(existingUser, userDTO);
             User updatedUser = userRepository.save(existingUser);
-            return mapearDTO(updatedUser);
+            return mapToResponseDTO(updatedUser);
         } catch (DataIntegrityViolationException e) {
-            throw new UserAlreadyExistsException("Error al actualizar el usuario: datos duplicados");
+            throw new WebException(HttpStatus.BAD_REQUEST, "Error al actualizar el usuario: datos duplicados");
         }
     }
 
@@ -120,16 +98,90 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("Usuario no encontrado con ID: " + id);
+            throw new ResourceNotFoundException("Usuario", "ID", id);
         }
         userRepository.deleteById(id);
     }
 
-    private User mapearEntity(UserDTO userDTO) {
-        return modelMapper.map(userDTO, User.class);
+    private void validateNewUser(UserDTO userDTO) {
+        if (userRepository.existsByUserName(userDTO.getUserName())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "El nombre de usuario ya existe");
+        }
+        if (userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "El email ya existe");
+        }
+        if (userDTO.getUserImage() != null && userRepository.existsByUserImage(userDTO.getUserImage())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "La imagen de usuario ya existe");
+        }
     }
 
-    private UserDTO mapearDTO(User user) {
-        return modelMapper.map(user, UserDTO.class);
+    private void validateUpdateUser(UserDTO userDTO, User existingUser) {
+        if (!existingUser.getUserName().equals(userDTO.getUserName())
+                && userRepository.existsByUserName(userDTO.getUserName())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "El nombre de usuario ya existe");
+        }
+        if (!existingUser.getEmail().equals(userDTO.getEmail())
+                && userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "El email ya existe");
+        }
+        if (userDTO.getUserImage() != null
+                && !userDTO.getUserImage().equals(existingUser.getUserImage())
+                && userRepository.existsByUserImage(userDTO.getUserImage())) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "La imagen de usuario ya existe");
+        }
+    }
+
+    private void updateUserFields(User user, UserDTO userDTO) {
+        user.setUserName(userDTO.getUserName());
+        user.setEmail(userDTO.getEmail());
+        user.setPhoneNumber(userDTO.getPhoneNumber());
+
+        if (userDTO.getUserImage() != null) {
+            user.setUserImage(userDTO.getUserImage());
+        }
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        }
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDTO updateSellerStatus(Long userId, boolean seller) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "ID", userId));
+
+        // Opcionalmente, puedes agregar validaciones adicionales
+        if (user.isSeller() == seller) {
+            throw new WebException(
+                    HttpStatus.BAD_REQUEST,
+                    "El usuario ya " + (seller ? "es" : "no es") + " vendedor"
+            );
+        }
+
+        try {
+            user.setSeller(seller);
+            User updatedUser = userRepository.save(user);
+            return mapToResponseDTO(updatedUser);
+        } catch (Exception e) {
+            throw new WebException(
+                    HttpStatus.BAD_REQUEST,
+                    "Error al actualizar el estado de vendedor del usuario"
+            );
+        }
+    }
+
+    private UserResponseDTO mapToResponseDTO(User user) {
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUserName(user.getUserName());
+        dto.setEmail(user.getEmail());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setUserImage(user.getUserImage());
+        dto.setSeller(user.isSeller());
+        return dto;
+    }
+
+    private User mapToEntity(UserDTO userDTO) {
+        return modelMapper.map(userDTO, User.class);
     }
 }

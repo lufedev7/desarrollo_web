@@ -7,10 +7,12 @@ import com.proyect.web.entitys.ProductCategory;
 import com.proyect.web.exceptions.DuplicateResourceException;
 import com.proyect.web.exceptions.InvalidOperationException;
 import com.proyect.web.exceptions.ResourceNotFoundException;
+import com.proyect.web.exceptions.WebException;
 import com.proyect.web.repository.ProductCategoryRepository;
 import com.proyect.web.service.ProductCategoryService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,38 +23,43 @@ import java.util.stream.Collectors;
 public class ProductCategoryServiceImpl implements ProductCategoryService {
     private final ProductCategoryRepository categoryRepository;
 
-    @Autowired
     public ProductCategoryServiceImpl(ProductCategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
     }
 
+    @Override
     public ProductCategoryDTO createCategory(ProductCategoryCreateDTO categoryDTO) {
-        if (categoryRepository.existsByCategoryName(categoryDTO.getCategoryName())) {
-            throw new DuplicateResourceException("Category name already exists");
-        }
-        if (categoryRepository.existsByCategoryImage(categoryDTO.getCategoryImage())) {
-            throw new DuplicateResourceException("Category image already exists");
-        }
+        validateNewCategory(categoryDTO);
 
         ProductCategory category = new ProductCategory();
         category.setCategoryName(categoryDTO.getCategoryName());
         category.setCategoryImage(categoryDTO.getCategoryImage());
         category.setCategoryDescription(categoryDTO.getCategoryDescription());
 
-        ProductCategory savedCategory = categoryRepository.save(category);
-        return convertToDTO(savedCategory);
+        try {
+            ProductCategory savedCategory = categoryRepository.save(category);
+            return convertToDTO(savedCategory);
+        } catch (Exception e) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Error al crear la categoría");
+        }
     }
 
     @Override
+    @Transactional
     public ProductCategoryDTO getCategory(Long id) {
         ProductCategory category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría", "ID", id));
         return convertToDTO(category);
     }
 
     @Override
+    @Transactional
     public List<ProductCategoryDTO> getAllCategories() {
-        return categoryRepository.findAll().stream()
+        List<ProductCategory> categories = categoryRepository.findAll();
+        if(categories.isEmpty()) {
+            throw new ResourceNotFoundException("Categorías", "lista", 0);
+        }
+        return categories.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -60,30 +67,58 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     @Override
     public ProductCategoryDTO updateCategory(Long id, ProductCategoryUpdateDTO categoryDTO) {
         ProductCategory category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría", "ID", id));
 
-        if (!category.getCategoryName().equals(categoryDTO.getCategoryName()) &&
-                categoryRepository.existsByCategoryName(categoryDTO.getCategoryName())) {
-            throw new DuplicateResourceException("Category name already exists");
+        validateUpdateCategory(categoryDTO, category);
+
+        try {
+            updateCategoryFields(category, categoryDTO);
+            ProductCategory updatedCategory = categoryRepository.save(category);
+            return convertToDTO(updatedCategory);
+        } catch (Exception e) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Error al actualizar la categoría");
         }
-
-        category.setCategoryName(categoryDTO.getCategoryName());
-        category.setCategoryDescription(categoryDTO.getCategoryDescription());
-
-        ProductCategory updatedCategory = categoryRepository.save(category);
-        return convertToDTO(updatedCategory);
     }
 
     @Override
     public void deleteCategory(Long id) {
         ProductCategory category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría", "ID", id));
 
         if (!category.getProducts().isEmpty()) {
-            throw new InvalidOperationException("Cannot delete category with associated products");
+            throw new WebException(HttpStatus.BAD_REQUEST,
+                    "No se puede eliminar la categoría porque tiene productos asociados");
         }
 
-        categoryRepository.deleteById(id);
+        try {
+            categoryRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "Error al eliminar la categoría");
+        }
+    }
+
+    private void validateNewCategory(ProductCategoryCreateDTO categoryDTO) {
+        if (categoryRepository.existsByCategoryName(categoryDTO.getCategoryName())) {
+            throw new WebException(HttpStatus.BAD_REQUEST,
+                    "Ya existe una categoría con el nombre: " + categoryDTO.getCategoryName());
+        }
+        if (categoryRepository.existsByCategoryImage(categoryDTO.getCategoryImage())) {
+            throw new WebException(HttpStatus.BAD_REQUEST,
+                    "Ya existe una categoría con la imagen especificada");
+        }
+    }
+
+    private void validateUpdateCategory(ProductCategoryUpdateDTO categoryDTO, ProductCategory category) {
+        if (!category.getCategoryName().equals(categoryDTO.getCategoryName()) &&
+                categoryRepository.existsByCategoryName(categoryDTO.getCategoryName())) {
+            throw new WebException(HttpStatus.BAD_REQUEST,
+                    "Ya existe una categoría con el nombre: " + categoryDTO.getCategoryName());
+        }
+    }
+
+    private void updateCategoryFields(ProductCategory category, ProductCategoryUpdateDTO categoryDTO) {
+        category.setCategoryName(categoryDTO.getCategoryName());
+        category.setCategoryDescription(categoryDTO.getCategoryDescription());
     }
 
     private ProductCategoryDTO convertToDTO(ProductCategory category) {

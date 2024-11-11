@@ -4,11 +4,12 @@ import com.proyect.web.entitys.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    boolean existsByUserName(String userName);
-    boolean existsByEmail(String email);
-    boolean existsByUserImage(String userImage);
-    User findByUserName(String userName);
-    User findByEmail(String email);
+    public boolean existsByUserName(String userName);
+    public boolean existsByEmail(String email);
+    public boolean existsByUserImage(String userImage);
+    public Optional<User> findByUserNameOrEmail(String username, String email);
 }
