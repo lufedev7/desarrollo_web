@@ -12,7 +12,7 @@ Authorization: Bearer {your_jwt_token}
 
 ### Get All Users
 ```http
-GET /users
+GET http://localhost:8080/api/users
 Response: [
     {
         "id": 1,
@@ -26,7 +26,7 @@ Response: [
 
 ### Get User By ID
 ```http
-GET /users/{id}
+GET http://localhost:8080/api/users/{id}
 Response: {
     "id": 1,
     "userName": "string",
@@ -38,7 +38,7 @@ Response: {
 
 ### Register New User
 ```http
-POST /auth/register
+POST http://localhost:8080/api/auth/register
 Body: {
     "userName": "string",
     "email": "string",
@@ -55,7 +55,7 @@ Response: {
 
 ### Login User
 ```http
-POST /auth/login
+POST http://localhost:8080/api/auth/login
 Body: {
     "email": "string",
     "password": "string"
@@ -69,7 +69,7 @@ Response: {
 
 ### Update User
 ```http
-PUT /users/{id}
+PUT http://localhost:8080/api/users/{id}
 Body: {
     "userName": "string",
     "email": "string",
@@ -80,7 +80,7 @@ Body: {
 
 ### Delete User
 ```http
-DELETE /users/{id}
+DELETE http://localhost:8080/api/users/{id}
 Response: {
     "message": "User deleted successfully"
 }
@@ -88,7 +88,7 @@ Response: {
 
 ### Get My Products
 ```http
-GET /users/my-products
+GET http://localhost:8080/api/users/my-products
 Response: [
     {
         "productId": 1,
@@ -106,7 +106,7 @@ Response: [
 
 ### Get All Products
 ```http
-GET /products
+GET http://localhost:8080/api/products
 Query Parameters:
 - page (optional): number
 - size (optional): number
@@ -135,7 +135,7 @@ Response: {
 
 ### Get Product By ID
 ```http
-GET /products/{id}
+GET http://localhost:8080/api/products/{id}
 Response: {
     "productId": 1,
     "productName": "string",
@@ -152,7 +152,7 @@ Response: {
 
 ### Create New Product
 ```http
-POST /products/new
+POST http://localhost:8080/api/products/new
 Body: {
     "productName": "string",
     "categoryId": 1,
@@ -166,7 +166,7 @@ Body: {
 
 ### Update Product
 ```http
-PUT /products/{id}
+PUT http://localhost:8080/api/products/{id}
 Body: {
     "productName": "string",
     "categoryId": 1,
@@ -179,7 +179,7 @@ Body: {
 
 ### Mark Product as Sold
 ```http
-PATCH /products/{id}/sold
+PATCH http://localhost:8080/api/products/{id}/sold
 Response: {
     "productId": 1,
     "isSold": true
@@ -188,7 +188,7 @@ Response: {
 
 ### Delete Product
 ```http
-DELETE /products/{id}
+DELETE http://localhost:8080/api/products/{id}
 Response: {
     "message": "Product deleted successfully"
 }
@@ -196,7 +196,7 @@ Response: {
 
 ### Get Products by Category
 ```http
-GET /products/category/{categoryId}
+GET http://localhost:8080/api/products/category/{categoryId}
 Query Parameters:
 - page (optional): number
 - size (optional): number
@@ -209,7 +209,7 @@ Response: {
 
 ### Get Products by User
 ```http
-GET /products/user/{userId}
+GET http://localhost:8080/api/products/user/{userId}
 Query Parameters:
 - page (optional): number
 - size (optional): number
@@ -224,7 +224,7 @@ Response: {
 
 ### Get All Categories
 ```http
-GET /categories
+GET http://localhost:8080/api/categories
 Response: [
     {
         "productCategoryId": 1,
@@ -237,7 +237,7 @@ Response: [
 
 ### Get Category By ID
 ```http
-GET /categories/{id}
+GET http://localhost:8080/api/categories/{id}
 Response: {
     "productCategoryId": 1,
     "categoryName": "string",
@@ -248,7 +248,7 @@ Response: {
 
 ### Create New Category
 ```http
-POST /categories
+POST http://localhost:8080/api/categories
 Body: {
     "categoryName": "string",
     "categoryImage": "string",
@@ -258,7 +258,7 @@ Body: {
 
 ### Update Category
 ```http
-PUT /categories/{id}
+PUT http://localhost:8080/api/categories/{id}
 Body: {
     "categoryName": "string",
     "categoryDescription": "string"
@@ -267,7 +267,7 @@ Body: {
 
 ### Delete Category
 ```http
-DELETE /categories/{id}
+DELETE http://localhost:8080/api/categories/{id}
 Response: {
     "message": "Category deleted successfully"
 }
@@ -277,7 +277,7 @@ Response: {
 
 ### Search Products
 ```http
-GET /products/search
+GET http://localhost:8080/api/products/search
 Query Parameters:
 - query: string
 - page (optional): number
