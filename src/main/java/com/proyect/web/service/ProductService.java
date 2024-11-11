@@ -19,4 +19,5 @@ public interface ProductService {
     ProductPageResponseDTO getAllProducts(int pageNumber, int pageSize, String sortBy, String sortDir);
     ProductPageResponseDTO searchProducts(String query, int pageNumber, int pageSize, String sortBy, String sortDir);
     ProductPageResponseDTO getRelatedProducts(Long productId, int pageNumber, int pageSize, String sortBy, String sortDir);
+    ProductPageResponseDTO getMyProducts(int pageNumber, int pageSize, String sortBy, String sortDir);
 }

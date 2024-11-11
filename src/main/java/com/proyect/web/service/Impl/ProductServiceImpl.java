@@ -19,6 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -316,6 +318,43 @@ public class ProductServiceImpl implements ProductService {
         productPageResponseDTO.setTotalElements(relatedProducts.getTotalElements());
         productPageResponseDTO.setTotalPages(relatedProducts.getTotalPages());
         productPageResponseDTO.setLast(relatedProducts.isLast());
+
+        return productPageResponseDTO;
+    }
+
+    @Override
+    public ProductPageResponseDTO getMyProducts(int pageNumber, int pageSize, String sortBy, String sortDir) {
+        // Obtener usuario autenticado
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserEmail = authentication.getName();
+
+        User user = userRepository.findByUserNameOrEmail(currentUserEmail, currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email o username", 0));
+
+        if (!user.isSeller()) {
+            throw new WebException(HttpStatus.BAD_REQUEST, "El usuario no es un vendedor");
+        }
+
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(sortBy).ascending() :
+                Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        Page<Product> pageProducts = productRepository.findByUserId(user.getId(), pageable);
+        List<Product> products = pageProducts.getContent();
+
+        List<ProductDTO> content = products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        ProductPageResponseDTO productPageResponseDTO = new ProductPageResponseDTO();
+        productPageResponseDTO.setContent(content);
+        productPageResponseDTO.setPageNo(pageProducts.getNumber());
+        productPageResponseDTO.setPageSize(pageProducts.getSize());
+        productPageResponseDTO.setTotalElements(pageProducts.getTotalElements());
+        productPageResponseDTO.setTotalPages(pageProducts.getTotalPages());
+        productPageResponseDTO.setLast(pageProducts.isLast());
 
         return productPageResponseDTO;
     }

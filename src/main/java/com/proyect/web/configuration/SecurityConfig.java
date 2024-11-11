@@ -32,23 +32,30 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/**").permitAll()
-
+                    auth
                             // Rutas públicas
-                            .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                            .requestMatchers("/api/auth/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/products/page").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/products/search").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/products/category/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/products/{id}").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/products/{id}/related").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
 
-                            // Rutas que requieren ROLE_ADMIN
-                            .requestMatchers("/api/users/all").hasRole("ADMIN")
-                            .requestMatchers("/api/users/delete/**").hasRole("ADMIN")
-                            .requestMatchers("/api/users/new").hasRole("ADMIN")
+                            // Rutas de administrador
+                            .requestMatchers("/api/users/**").hasRole("ADMIN")
                             .requestMatchers("/api/categories/new").hasRole("ADMIN")
                             .requestMatchers("/api/categories/delete/**").hasRole("ADMIN")
-                            .requestMatchers("/api/products/delete/**").hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
 
-                            // Rutas que requieren ROLE_USER o ROLE_ADMIN
+                            // Rutas para usuarios vendedores
                             .requestMatchers("/api/products/new").hasAnyRole("USER", "ADMIN")
                             .requestMatchers("/api/products/update/**").hasAnyRole("USER", "ADMIN")
+                            .requestMatchers("/api/products/user/**").hasAnyRole("USER", "ADMIN")
+                            .requestMatchers("/api/products/my-products").hasAnyRole("USER", "ADMIN")
+
+                            // Patch de seller status solo para admin
+                            .requestMatchers(HttpMethod.PATCH, "/api/users/{id}/seller").hasRole("USER")
 
                             // Cualquier otra ruta requiere autenticación
                             .anyRequest().authenticated();
@@ -59,6 +66,7 @@ public class SecurityConfig {
                 )
                 .build();
     }
+
 
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
