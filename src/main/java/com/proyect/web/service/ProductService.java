@@ -5,7 +5,6 @@ import com.proyect.web.dtos.product.ProductDTO;
 import com.proyect.web.dtos.product.ProductPageResponseDTO;
 import com.proyect.web.dtos.product.ProductUpdateDTO;
 
-import java.util.List;
 
 public interface ProductService {
     ProductDTO createProduct(ProductCreateDTO productDTO);

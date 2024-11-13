@@ -4,14 +4,11 @@ import com.proyect.web.dtos.category.ProductCategoryCreateDTO;
 import com.proyect.web.dtos.category.ProductCategoryDTO;
 import com.proyect.web.dtos.category.ProductCategoryUpdateDTO;
 import com.proyect.web.entitys.ProductCategory;
-import com.proyect.web.exceptions.DuplicateResourceException;
-import com.proyect.web.exceptions.InvalidOperationException;
 import com.proyect.web.exceptions.ResourceNotFoundException;
 import com.proyect.web.exceptions.WebException;
 import com.proyect.web.repository.ProductCategoryRepository;
 import com.proyect.web.service.ProductCategoryService;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
