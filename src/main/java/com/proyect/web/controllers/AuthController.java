@@ -28,7 +28,6 @@ public class AuthController {
    private AuthenticationManager authenticationManager;
    @Autowired
    private UserRepository userRepository;
-   
    @Autowired
    private UserService userServices;
 

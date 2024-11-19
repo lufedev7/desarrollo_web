@@ -3,6 +3,7 @@ package com.proyect.web.dtos.product;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -12,8 +13,9 @@ public class ProductCreateDTO {
     private String productName;
     private Long categoryId;
     private String productDescription;
-    private Long userId;
+    private Boolean isNew;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
+    private List<String> imageUrls;
     private Integer stockQuantity;
 }

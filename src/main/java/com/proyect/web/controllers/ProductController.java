@@ -4,6 +4,7 @@ import com.proyect.web.dtos.product.ProductCreateDTO;
 import com.proyect.web.dtos.product.ProductDTO;
 import com.proyect.web.dtos.product.ProductPageResponseDTO;
 import com.proyect.web.dtos.product.ProductUpdateDTO;
+import com.proyect.web.exceptions.InvalidOperationException;
 import com.proyect.web.exceptions.ResourceNotFoundException;
 import com.proyect.web.responses.ApiResponse;
 import com.proyect.web.service.ProductService;
@@ -28,29 +29,20 @@ public class ProductController {
         this.productService = productService;
     }
 
+    //BASIC CRUD
+
     @PostMapping("/new")
     public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductCreateDTO productDTO) {
         try {
             ProductDTO createdProduct = productService.createProduct(productDTO);
             return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
-        } catch (ResourceNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (ResourceNotFoundException | InvalidOperationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error creating product");
+            throw new InvalidOperationException("Error al crear el producto: " + e.getMessage());
         }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id) {
-        try {
-            ProductDTO product = productService.getProduct(id);
-            return ResponseEntity.ok(product);
-        } catch (ResourceNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-    }
-
-    // Nuevo endpoint para paginación
     @GetMapping("/page")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getAllProductsPaginated(
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
@@ -58,7 +50,6 @@ public class ProductController {
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
-        // Validación de parámetros
         if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
         if (pageNumber < 0) pageNumber = 0;
 
@@ -75,43 +66,52 @@ public class ProductController {
         try {
             ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
             return ResponseEntity.ok(updatedProduct);
-        } catch (ResourceNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (ResourceNotFoundException | InvalidOperationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating product");
+            throw new InvalidOperationException("Error al actualizar el producto: " + e.getMessage());
         }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteProduct(@PathVariable Long id) {
         try {
-            productService.deleteProduct(id);
-            Map<String, String> response = Map.of("message", "Product deleted successfully");
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                throw new InvalidOperationException("Usuario no autenticado");
+            }
+
+            String currentUserEmail = authentication.getName();
+            productService.deleteProduct(id, currentUserEmail);
+
+            Map<String, String> response = Map.of(
+                    "message", "Producto eliminado exitosamente",
+                    "status", "success"
+            );
+
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (InvalidOperationException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting product");
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error al eliminar el producto: " + e.getMessage()
+            );
         }
     }
 
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getProductsByCategory(
-            @PathVariable Long categoryId,
-            @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
-            @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
-            @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
-            @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
+    //ADDITIONALS
 
-        if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
-        if (pageNumber < 0) pageNumber = 0;
-
-        ProductPageResponseDTO response = productService.getProductsByCategory(
-                categoryId, pageNumber, pageSize, sortBy, sortDir);
-
-        return ResponseEntity.ok(
-                new ApiResponse<>("Productos por categoría recuperados exitosamente", response, true)
-        );
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id) {
+        try {
+            ProductDTO product = productService.getProduct(id);
+            return ResponseEntity.ok(product);
+        } catch (ResourceNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     @GetMapping("/user/{userId}")
@@ -133,7 +133,64 @@ public class ProductController {
         );
     }
 
-    // Para obtener los productos del usuario autenticado
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getProductsByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
+
+        if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
+        if (pageNumber < 0) pageNumber = 0;
+
+        ProductPageResponseDTO response = productService.getProductsByCategory(
+                categoryId, pageNumber, pageSize, sortBy, sortDir);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Productos por categoría recuperados exitosamente", response, true)
+        );
+    }
+
+    @PatchMapping("/{id}/sold")
+    public ResponseEntity<ProductDTO> markProductAsSold(@PathVariable Long id) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                throw new InvalidOperationException("Usuario no autenticado");
+            }
+
+            String currentUserEmail = authentication.getName();
+            ProductDTO product = productService.markProductAsSold(id, currentUserEmail);
+            return ResponseEntity.ok(product);
+        } catch (ResourceNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (InvalidOperationException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating product status");
+        }
+    }
+
+    @GetMapping("/{productId}/related")
+    public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getRelatedProducts(
+            @PathVariable Long productId,
+            @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
+
+        if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
+        if (pageNumber < 0) pageNumber = 0;
+
+        ProductPageResponseDTO response = productService.getRelatedProducts(
+                productId, pageNumber, pageSize, sortBy, sortDir);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Productos relacionados encontrados exitosamente", response, true)
+        );
+    }
+
     @GetMapping("/my-products")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getMyProducts(
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
@@ -172,37 +229,6 @@ public class ProductController {
         return ResponseEntity.ok(
                 new ApiResponse<>("Productos encontrados exitosamente", response, true)
         );
-    }
-
-    @GetMapping("/{productId}/related")
-    public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getRelatedProducts(
-            @PathVariable Long productId,
-            @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
-            @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
-            @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
-            @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
-
-        if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
-        if (pageNumber < 0) pageNumber = 0;
-
-        ProductPageResponseDTO response = productService.getRelatedProducts(
-                productId, pageNumber, pageSize, sortBy, sortDir);
-
-        return ResponseEntity.ok(
-                new ApiResponse<>("Productos relacionados encontrados exitosamente", response, true)
-        );
-    }
-
-    @PatchMapping("/{id}/sold")
-    public ResponseEntity<ProductDTO> markProductAsSold(@PathVariable Long id) {
-        try {
-            ProductDTO product = productService.markProductAsSold(id);
-            return ResponseEntity.ok(product);
-        } catch (ResourceNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating product status");
-        }
     }
 }
 

@@ -6,6 +6,7 @@ import com.proyect.web.dtos.product.ProductPageResponseDTO;
 import com.proyect.web.dtos.product.ProductUpdateDTO;
 import com.proyect.web.dtos.user.UserResponseDTO;
 import com.proyect.web.entitys.*;
+import com.proyect.web.exceptions.InvalidOperationException;
 import com.proyect.web.exceptions.ResourceNotFoundException;
 import com.proyect.web.exceptions.WebException;
 import com.proyect.web.repository.ProductCategoryRepository;
@@ -47,28 +48,65 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO createProduct(ProductCreateDTO productDTO) {
-        ProductCategory category = categoryRepository.findById(productDTO.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría", "ID", productDTO.getCategoryId()));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new InvalidOperationException("Usuario no autenticado");
+        }
 
-        User user = userRepository.findById(productDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "ID", productDTO.getUserId()));
+        String currentUserEmail = authentication.getName();
+
+        User currentUser = userRepository.findByUserNameOrEmail(currentUserEmail, currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0));
+
+        if (!currentUser.isSeller()) {
+            throw new InvalidOperationException("Solo los vendedores pueden crear productos");
+        }
+
+        if (productDTO.getSalePrice() != null &&
+                productDTO.getSalePrice().compareTo(productDTO.getOriginalPrice()) > 0) {
+            throw new InvalidOperationException("El precio de venta no puede ser mayor al precio original");
+        }
+
+        ProductCategory category = categoryRepository.findById(productDTO.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "ID", productDTO.getCategoryId()));
 
         Product product = new Product();
         product.setProductName(productDTO.getProductName());
         product.setCategory(category);
         product.setProductDescription(productDTO.getProductDescription());
-        product.setUser(user);
+        product.setUser(currentUser);
         product.setOriginalPrice(productDTO.getOriginalPrice());
         product.setSalePrice(productDTO.getSalePrice());
-        product.setIsNew(true);
+        product.setIsNew(productDTO.getIsNew() != null ? productDTO.getIsNew() : true);
         product.setIsSold(false);
+
+        Product savedProduct = productRepository.save(product);
+
+        if (productDTO.getImageUrls() != null && !productDTO.getImageUrls().isEmpty()) {
+            List<ProductImage> images = new ArrayList<>();
+            for (String url : productDTO.getImageUrls()) {
+                if (url == null || url.trim().isEmpty()) {
+                    throw new InvalidOperationException("Las URLs de las imágenes no pueden estar vacías");
+                }
+                ProductImage image = new ProductImage();
+                image.setProduct(savedProduct);
+                image.setUrl(url.trim());
+                images.add(image);
+            }
+            savedProduct.setImages(images);
+            savedProduct = productRepository.save(savedProduct);
+        }
+
+        if (productDTO.getStockQuantity() == null || productDTO.getStockQuantity() < 1) {
+            throw new InvalidOperationException("La cantidad en stock debe ser al menos 1");
+        }
 
         ProductStock stock = new ProductStock();
         stock.setQuantity(productDTO.getStockQuantity());
-        stock.setProduct(product);
-        product.setStock(stock);
+        stock.setProduct(savedProduct);
+        savedProduct.setStock(stock);
 
-        Product savedProduct = productRepository.save(product);
+        savedProduct = productRepository.save(savedProduct);
         return convertToDTO(savedProduct);
     }
 
@@ -106,34 +144,121 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO updateProduct(Long id, ProductUpdateDTO productDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new InvalidOperationException("Usuario no autenticado");
+        }
+
+        String currentUserEmail = authentication.getName();
+
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Producto", "ID", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "ID", id));
+
+        User currentUser = userRepository.findByUserNameOrEmail(currentUserEmail, currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", 0));
+
+        if (!product.getUser().getId().equals(currentUser.getId())) {
+            throw new InvalidOperationException("No está autorizado para actualizar este producto");
+        }
 
         if (productDTO.getCategoryId() != null) {
             ProductCategory category = categoryRepository.findById(productDTO.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría", "ID", productDTO.getCategoryId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category", "ID", productDTO.getCategoryId()));
             product.setCategory(category);
         }
 
-        updateProductFields(product, productDTO);
-
-        try {
-            Product updatedProduct = productRepository.save(product);
-            return convertToDTO(updatedProduct);
-        } catch (Exception e) {
-            throw new WebException(HttpStatus.BAD_REQUEST, "Error al actualizar el producto");
+        if (productDTO.getProductName() != null) {
+            product.setProductName(productDTO.getProductName());
         }
+
+        if (productDTO.getProductDescription() != null) {
+            product.setProductDescription(productDTO.getProductDescription());
+        }
+
+        if (productDTO.getIsNew() != null) {
+            product.setIsNew(productDTO.getIsNew());
+        }
+
+        if (productDTO.getOriginalPrice() != null) {
+            product.setOriginalPrice(productDTO.getOriginalPrice());
+        }
+
+        if (productDTO.getSalePrice() != null) {
+            if (productDTO.getSalePrice().compareTo(product.getOriginalPrice()) > 0) {
+                throw new InvalidOperationException("El precio de venta no puede ser mayor al precio original");
+            }
+            product.setSalePrice(productDTO.getSalePrice());
+        }
+
+        if (productDTO.getImageUrls() != null) {
+            List<ProductImage> newImages = new ArrayList<>();
+            List<ProductImage> existingImages = product.getImages();
+
+            for (String url : productDTO.getImageUrls()) {
+                if (url == null || url.trim().isEmpty()) {
+                    throw new InvalidOperationException("Las URLs de las imágenes no pueden estar vacías");
+                }
+
+                boolean imageExists = false;
+                for (ProductImage image : existingImages) {
+                    if (image.getUrl().equals(url.trim())) {
+                        imageExists = true;
+                        break;
+                    }
+                }
+
+                if (!imageExists) {
+                    ProductImage image = new ProductImage();
+                    image.setProduct(product);
+                    image.setUrl(url.trim());
+                    newImages.add(image);
+                }
+            }
+
+            product.getImages().addAll(newImages);
+        }
+
+        if (productDTO.getStockQuantity() != null) {
+            if (productDTO.getStockQuantity() < 0) {
+                throw new InvalidOperationException("La cantidad en stock no puede ser negativa");
+            }
+
+            if (product.getStock() == null) {
+                ProductStock stock = new ProductStock();
+                stock.setProduct(product);
+                stock.setQuantity(productDTO.getStockQuantity());
+                product.setStock(stock);
+            } else {
+                product.getStock().setQuantity(productDTO.getStockQuantity());
+            }
+        }
+
+        Product updatedProduct = productRepository.save(product);
+        return convertToDTO(updatedProduct);
     }
 
     @Override
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Producto", "ID", id);
+    public void deleteProduct(Long id, String currentUserEmail) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto", "ID", id));
+
+        User currentUser = userRepository.findByUserNameOrEmail(currentUserEmail, currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", 0));
+
+        if (!product.getUser().getId().equals(currentUser.getId())) {
+            throw new InvalidOperationException("No está autorizado para eliminar este producto");
         }
+
         try {
-            productRepository.deleteById(id);
+            if (product.getIsSold()) {
+                throw new InvalidOperationException("No se puede eliminar un producto que ya está vendido");
+            }
+
+            productRepository.delete(product);
+        } catch (InvalidOperationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new WebException(HttpStatus.BAD_REQUEST, "Error al eliminar el producto");
+            throw new InvalidOperationException("Error al eliminar el producto: " + e.getMessage());
         }
     }
 
@@ -214,7 +339,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductDTO markProductAsSold(Long id) {
+    public ProductDTO markProductAsSold(Long id, String currentUserEmail) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto", "ID", id));
 
