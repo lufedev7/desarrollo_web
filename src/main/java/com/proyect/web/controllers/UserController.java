@@ -78,4 +78,10 @@ public class UserController {
                 new ApiResponse<>(message, updatedUser, true)
         );
     }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<UserResponseDTO> getCurrentUserProfile() {
+        UserResponseDTO userDto = userService.getCurrentUser();
+        return ResponseEntity.ok(userDto);
+    }
 }

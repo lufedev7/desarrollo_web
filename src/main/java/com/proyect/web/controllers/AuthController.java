@@ -3,6 +3,9 @@ package com.proyect.web.controllers;
 
 import com.proyect.web.dtos.otherFuntionalities.LoginDTO;
 import com.proyect.web.dtos.user.UserDTO;
+import com.proyect.web.dtos.user.UserResponseDTO;
+import com.proyect.web.entitys.User;
+import com.proyect.web.exceptions.ResourceNotFoundException;
 import com.proyect.web.repository.UserRepository;
 import com.proyect.web.service.UserService;
 import jakarta.validation.Valid;
@@ -30,11 +33,27 @@ public class AuthController {
    private UserService userServices;
 
    @PostMapping("/login")
-   public ResponseEntity<String> authenticationUser(@RequestBody LoginDTO loginDTO) {
+   public ResponseEntity<UserResponseDTO> authenticationUser(@RequestBody LoginDTO loginDTO) {
+      // Esta parte se mantiene igual
       Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(loginDTO.getUsernameOrEmail(), loginDTO.getPassword()));
+              new UsernamePasswordAuthenticationToken(loginDTO.getUsernameOrEmail(), loginDTO.getPassword()));
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      return new ResponseEntity<>("Init sucessfully!!!", HttpStatus.OK);
+
+      // Obtener el usuario actual después de la autenticación
+      User user = userRepository.findByUserNameOrEmail(loginDTO.getUsernameOrEmail(), loginDTO.getUsernameOrEmail())
+              .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email/username", 0));
+
+      // Convertir a DTO
+      UserResponseDTO responseDTO = new UserResponseDTO(
+              user.getId(),
+              user.getUserName(),
+              user.getEmail(),
+              user.getPhoneNumber(),
+              user.getUserImage(),
+              user.isSeller()
+      );
+
+      return new ResponseEntity<>(responseDTO, HttpStatus.OK);
    }
 
    @PostMapping("/register")

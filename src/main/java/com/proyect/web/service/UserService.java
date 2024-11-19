@@ -18,4 +18,6 @@ public interface UserService {
     void deleteUser(Long id);
 
     UserResponseDTO updateSellerStatus(Long userId, boolean seller);
+
+    UserResponseDTO getCurrentUser();
 }

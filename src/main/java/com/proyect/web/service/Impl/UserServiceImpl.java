@@ -14,12 +14,15 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -168,6 +171,14 @@ public class UserServiceImpl implements UserService {
                     "Error al actualizar el estado de vendedor del usuario"
             );
         }
+    }
+
+    public UserResponseDTO getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUserNameOrEmail(username, username);
+        User user = userOptional.orElseThrow(() -> new ResourceNotFoundException("Usuario", "username/email", 0));
+        return mapToResponseDTO(user);
     }
 
     private UserResponseDTO mapToResponseDTO(User user) {

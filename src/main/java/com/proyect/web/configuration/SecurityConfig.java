@@ -42,6 +42,9 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.GET, "/api/products/{id}/related").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
 
+                            // Ruta específica de perfil de usuario - MOVER ESTA LÍNEA ARRIBA
+                            .requestMatchers(HttpMethod.GET, "/api/users/my-profile").hasAnyRole("USER", "ADMIN")
+
                             // Rutas de administrador
                             .requestMatchers("/api/users/**").hasRole("ADMIN")
                             .requestMatchers("/api/categories/new").hasRole("ADMIN")
