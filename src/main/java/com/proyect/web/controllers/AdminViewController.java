@@ -1,4 +1,4 @@
-package com.proyect.web.controllers;
+/* package com.proyect.web.controllers;
 
 import com.proyect.web.dtos.product.ProductDTO;
 import com.proyect.web.dtos.product.ProductPageResponseDTO;
@@ -49,3 +49,4 @@ public class AdminDashboardController {
         return ResponseEntity.ok(products);
     }
 }
+ */
