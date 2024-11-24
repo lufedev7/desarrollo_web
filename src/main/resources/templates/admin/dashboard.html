@@ -1,97 +1,420 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" th:href="@{/css/admin/dashboard.css}" />
-    <script th:src="@{/js/admin/dashboard.js}"></script>
+    <style>
+        /* Modificar los estilos del sidebar y main-content */
+        .sidebar {
+            width: 250px;
+            background: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav-buttons {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            color: #666;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .nav-btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        /* Estilos para el contenido principal */
+        .main-content {
+            margin-left: 250px;  /* Igual al ancho del sidebar */
+            padding: 2rem;
+            background: #f8f9fa;
+            min-height: 100vh;
+            width: calc(100% - 250px); /* Resta el ancho del sidebar */
+            flex: 1;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 500px;
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 1rem;
+        }
+    </style>
 </head>
 <body>
-<div class="d-flex" id="dashboard">
+
+<div class="d-flex">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <div class="sidebar">
         <div class="sidebar-header">
-            <h1>Admin Panel</h1>
+            <h2 class="h5 mb-0">Dashboard Administrador</h2>
         </div>
         <div class="nav-buttons">
-            <button class="nav-btn" data-view="users" onclick="switchView('users')">
-                <i class="bi bi-person"></i> Users
+            <button class="nav-btn" onclick="location.href='http://localhost:3000/'">
+                <i class="bi bi-arrow-left"></i>
+                Volver
             </button>
-            <button class="nav-btn" data-view="products" onclick="switchView('products')">
-                <i class="bi bi-box"></i> Products
+            <button class="nav-btn active" onclick="switchView('users')">
+                <i class="bi bi-people"></i>
+                Usuarios
+            </button>
+            <button class="nav-btn" onclick="switchView('products')">
+                <i class="bi bi-box"></i>
+                Productos
+            </button>
+            <button class="nav-btn" onclick="generateReport()">
+                <i class="bi bi-file-earmark-text"></i>
+                Generar Reporte
             </button>
             <button class="nav-btn" onclick="logout()">
-                <i class="bi bi-box-arrow-right"></i> Logout
+                <i class="bi bi-box-arrow-right"></i>
+                Logout
             </button>
         </div>
-    </aside>
+    </div>
 
     <!-- Main Content -->
-    <main class="main-content">
-        <div class="header">
-            <h1 id="sectionTitle">User  Management</h1>
+    <div class="main-content">
+        <div class="mb-4">
+            <h1 id="sectionTitle" class="h3 mb-3">Usuarios</h1>
+
+            <div class="search-container d-flex align-items-center">
+                <i class="bi bi-search position-absolute ms-3"></i>
+                <input type="text" id="searchInput" class="search-input me-3" placeholder="Buscar...">
+                <div class="pagination-controls d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm" id="prevPage" onclick="prevPage()">Anterior</button>
+                    <button class="btn btn-outline-primary btn-sm" id="nextPage" onclick="nextPage()">Siguiente</button>
+                </div>
+            </div>
         </div>
 
-        <div class="search-container">
-            <input type="text" id="searchInput" class="form-control" placeholder="Search...">
-        </div>
-
-        <div id="contentContainer">
-            <!-- User Management View -->
-            <div id="usersView" class="view active">
+        <!-- Vista de Usuarios -->
+        <div id="usersView" class="view">
+            <div class="table-container">
                 <table class="table">
                     <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
+                        <th>Usuario</th>
                         <th>Email</th>
-                        <th>Actions</th>
+                        <th>Teléfono</th>
+                        <th>Tipo</th>
+                        <th>Acciones</th>
                     </tr>
                     </thead>
-                    <tbody id="usersTable">
-                    <!-- User rows will be populated here -->
+                    <tbody id="usersTableBody">
                     </tbody>
                 </table>
-                <div class="pagination-controls">
-                    <button class="btn btn-outline-primary" id="prevPage" onclick="goToPrevPage()" disabled>Prev</button>
-                    <button class="btn btn-outline-primary" id="nextPage" onclick="goToNextPage()">Next</button>
-                    <span id="pageInfo"></span>
-                </div>
             </div>
+        </div>
 
-            <!-- Product Management View -->
-            <div id="productsView" class="view d-none">
+        <!-- Vista de Productos -->
+        <div id="productsView" class="view d-none">
+            <div class="table-container">
                 <table class="table">
                     <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>User</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                     </thead>
-                    <tbody id="productsTable">
-                    <!-- Product rows will be populated here -->
+                    <tbody id="productsTableBody">
                     </tbody>
                 </table>
-                <div class="pagination-controls">
-                    <button class="btn btn-outline-primary" id="prevProductPage" onclick="goToPrevProductPage()" disabled>Prev</button>
-                    <button class="btn btn-outline-primary" id="nextProductPage" onclick="goToNextProductPage()">Next</button>
-                    <span id="productPageInfo"></span>
-                </div>
             </div>
         </div>
-    </main>
+    </div>
 </div>
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentPage = 0;
+    let currentView = 'users';
 
-<script th:src="@{/js/admin/dashboard.js}"></script>
+    function switchView(view) {
+        // Verificar si los elementos existen antes de manipularlos
+        const usersView = document.getElementById('usersView');
+        const productsView = document.getElementById('productsView');
+        const sectionTitle = document.getElementById('sectionTitle');
+
+        if (!usersView || !productsView || !sectionTitle) {
+            console.error('No se encontraron elementos necesarios');
+            return;
+        }
+
+        // Actualizar botones activos
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+
+        // Cambiar vista
+        if (view === 'users') {
+            usersView.classList.remove('d-none');
+            productsView.classList.add('d-none');
+            sectionTitle.textContent = 'Gestión de Usuarios';
+        } else if (view === 'products') {
+            usersView.classList.add('d-none');
+            productsView.classList.remove('d-none');
+            sectionTitle.textContent = 'Gestión de Productos';
+        }
+
+        // Resetear página y cargar datos
+        currentView = view;
+        currentPage = 0;
+        loadData();
+    }
+
+    function loadData() {
+        if(currentView === 'users') {
+            loadUsers();
+        } else if(currentView === 'products') {
+            loadProducts();
+        }
+    }
+
+
+    function loadUsers() {
+        const search = document.getElementById('searchInput').value;
+        const url = search
+            ? `/admin/dashboard/search?query=${search}&pageNumber=${currentPage}&pageSize=10&sortBy=id&sortDir=DESC`
+            : `/api/users?pageNumber=${currentPage}&pageSize=10&sortBy=id&sortDir=DESC`;
+
+        $.get(url, function(response) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            if (response.success && response.data) {
+                response.data.content.forEach(user => {
+                    tbody.innerHTML += `
+                   <tr>
+                       <td>${user.id}</td>
+                       <td>
+                           <div class="d-flex align-items-center gap-2">
+                               <img src="${user.userImage || '/default-avatar.png'}"
+                                    class="rounded-circle"
+                                    width="32"
+                                    height="32"
+                                    alt="${user.userName}">
+                               ${user.userName}
+                           </div>
+                       </td>
+                       <td>${user.email}</td>
+                       <td>${user.phoneNumber}</td>
+                       <td>
+                           <span class="badge ${user.seller ? 'bg-success' : 'bg-secondary'}">
+                               ${user.seller ? 'Vendedor' : 'Comprador'}
+                           </span>
+                       </td>
+                       <td>
+                           <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                               <i class="bi bi-trash"></i>
+                           </button>
+                       </td>
+                   </tr>
+               `;
+                });
+
+                updatePaginationButtons(response.data);
+            }
+        }).fail(function(error) {
+            console.error('Error cargando usuarios:', error);
+            alert('Error al cargar usuarios');
+        });
+    }
+
+    function loadProducts() {
+        const search = document.getElementById('searchInput').value;
+        const url = search
+            ? `/admin/dashboard/products/search?query=${search}&pageNumber=${currentPage}&pageSize=10&sortBy=productId&sortDir=DESC`
+            : `/api/products/page?pageNo=${currentPage}&pageSize=10&sortBy=productId&sortDir=DESC`;
+
+        $.get(url, function(response) {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+
+            // Verificar estructura de respuesta y obtener datos
+            const products = search
+                ? (response.data ? response.data.content : [])  // Estructura para búsqueda
+                : (response.data ? response.data.content : []); // Estructura para paginación normal
+
+            products.forEach(product => {
+                tbody.innerHTML += `
+               <tr>
+                   <td>${product.productId}</td>
+                   <td>
+                       <div class="d-flex align-items-center gap-2">
+                           <img src="${product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : '/assets/img/default-product.png'}"
+                                class="rounded"
+                                width="40"
+                                height="40"
+                                alt="${product.productName}">
+                           ${product.productName}
+                       </div>
+                   </td>
+                   <td>${product.categoryId ? product.categoryName : 'Sin Categoria'}</td>
+                   <td>$${product.originalPrice.toFixed(2)}</td>
+                   <td>
+                       <span class="badge ${product.isSold ? 'bg-danger' : 'bg-success'}">
+                           ${product.isSold ? 'Vendido' : 'Disponible'}
+                       </span>
+                   </td>
+                   <td>${product.isNew ? 'Nuevo' : 'Usado'}</td>
+                   <td>
+                      <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.productId})">
+                           <i class="bi bi-trash"></i>
+                       </button>
+                   </td>
+               </tr>
+           `;
+            });
+
+            // Actualizar paginación
+            const pageData = search ? response.data : response.data;
+            updatePaginationButtons(pageData);
+
+        }).fail(function(error) {
+            console.error('Error cargando productos:', error);
+            alert('Error al cargar productos');
+        });
+    }
+
+
+
+    function updatePaginationButtons(pageData) {
+        document.getElementById('prevPage').disabled = currentPage === 0;
+        document.getElementById('nextPage').disabled = pageData.last;
+    }
+
+    function prevPage() {
+        if(currentPage > 0) {
+            currentPage--;
+            loadData();
+        }
+    }
+
+    function nextPage() {
+        currentPage++;
+        loadData();
+    }
+
+    function deleteUser(id) {
+        if(confirm('¿Está seguro de eliminar este usuario?')) {
+            $.ajax({
+                url: `/api/users/delete/${id}`,
+                method: 'DELETE',
+                success: function(response) {
+                    if(response.success) {
+                        alert('Usuario eliminado exitosamente');
+                        loadUsers(); // Recargar la tabla
+                    } else {
+                        alert('Error al eliminar el usuario');
+                    }
+                },
+                error: function(xhr) {
+                    if(xhr.status === 403) {
+                        alert('No tiene permisos para realizar esta acción');
+                    } else if(xhr.status === 404) {
+                        alert('Usuario no encontrado');
+                    } else {
+                        alert('Error al eliminar el usuario');
+                    }
+                    console.error('Error:', xhr);
+                }
+            });
+        }
+    }
+
+    function deleteProduct(id) {
+        if(confirm('¿Está seguro de eliminar este producto?')) {
+            $.ajax({
+                url: `/api/products/delete/${id}`,
+                method: 'DELETE',
+                success: function(response) {
+                    alert('Producto eliminado exitosamente');
+                    loadProducts(); // Recargar la tabla
+                },
+                error: function(xhr) {
+                    if(xhr.status === 403) {
+                        alert('No tiene permisos para eliminar este producto');
+                    } else if(xhr.status === 404) {
+                        alert('Producto no encontrado');
+                    } else {
+                        alert('Error al eliminar el producto: ' + xhr.responseJSON?.message || 'Error desconocido');
+                    }
+                    console.error('Error:', xhr);
+                }
+            });
+        }
+    }
+
+    function generateReport() {
+        window.location.href = '/admin/dashboard/report';
+    }
+
+    function logout() {
+        window.location.href = 'http://localhost:3000/login';
+    }
+
+    // Búsqueda con debounce
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 0;
+            loadData();
+        }, 300);
+    });
+
+    // Cargar datos iniciales
+    loadUsers();
+</script>
+
 </body>
 </html>

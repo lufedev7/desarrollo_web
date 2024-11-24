@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Usuarios", description = "API para la gestión de usuarios")
@@ -46,6 +47,7 @@ public class UserController {
                 .body(new ApiResponse<>("Usuario creado exitosamente", createdUser, true));
     }
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Obtener todos los usuarios", description = "Retorna una lista paginada de usuarios")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lista de usuarios recuperada exitosamente")
     @GetMapping
@@ -91,10 +93,11 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>("Usuario actualizado exitosamente", updatedUser, true));
     }
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Eliminar usuario")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Usuario eliminado exitosamente")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Usuario no encontrado")
-    @DeleteMapping("delete/{id}")
+    @DeleteMapping("/delete/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<ApiResponse<Void>> deleteUser(
             @Parameter(description = "ID del usuario a eliminar", required = true)

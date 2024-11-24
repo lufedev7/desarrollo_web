@@ -1,23 +1,27 @@
 package com.proyect.web.dtos.transaction;
 
 import com.proyect.web.entitys.PaymentMethod;
-import com.proyect.web.entitys.TransactionStatus;
-import lombok.AllArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Schema(description = "Solicitud de creación de transacción")
 public class TransactionCreateDTO {
-    private Long id;
-    private Long buyerId;
-    private Long productId;
-    private LocalDateTime transactionDate;
-    private TransactionStatus status;
+
+    @Schema(description = "Lista de productos a comprar", required = true)
+    @NotEmpty(message = "Debe incluir al menos un producto")
+    @Valid
+    private List<TransactionItemDTO> items;
+
+    @Schema(description = "Método de pago", example = "CREDIT_CARD", required = true)
+    @NotNull(message = "El método de pago es requerido")
     private PaymentMethod paymentMethod;
 }

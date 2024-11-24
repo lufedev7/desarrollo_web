@@ -120,7 +120,26 @@ public class UserServiceImpl implements UserService {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("Usuario", "ID", id);
         }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "id", id));
+
+        // Limpiar transacciones
+        user.getPurchases().clear();
+
+        // Limpiar productos
+        user.getProducts().forEach(product -> {
+            product.getTransactions().clear();
+            product.getImages().clear();
+            if(product.getStock() != null) {
+                product.setStock(null);
+            }
+        });
+        user.getProducts().clear();
+
+        // Limpiar roles
+        user.getRoles().clear();
+
+        userRepository.delete(user);
     }
 
     private void validateNewUser(UserDTO userDTO) {

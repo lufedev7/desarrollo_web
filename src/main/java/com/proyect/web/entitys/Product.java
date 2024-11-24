@@ -69,6 +69,6 @@ public class Product {
     private ProductStock stock;
 
     @Schema(description = "Historial de transacciones del producto")
-    @OneToMany(mappedBy = "product")
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Transaction> transactions = new HashSet<>();
 }

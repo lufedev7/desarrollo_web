@@ -29,8 +29,8 @@ VALUES
     (1, 'Tecnología', 'Productos electrónicos, accesorios de computadora, gadgets y más', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+14+Pro+Max+Como+Nuevo.webp'),
     (2, 'Libros y Material Académico', 'Libros de texto, guías de estudio, materiales y útiles escolares', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+14+Pro+Max+Como+Nuevo2.webp'),
     (3, 'Ropa y Accesorios', 'Ropa casual, deportiva, accesorios de moda y calzado', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+14+Pro+Max+Como+Nuevo3.webp'),
-    (4, 'Hogar y Decoración', 'Artículos para el hogar, decoración y muebles pequeños', 'home.png'),
-    (5, 'Deportes', 'Equipamiento deportivo, ropa deportiva y accesorios para ejercicio', 'sports.png'),
+    (4, 'Hogar y Decoración', 'Artículos para el hogar, decoración y muebles pequeños', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/Lote+De+Zapatos+Para+Niña+Talla+Bubble+Hummers.(2).webp'),
+    (5, 'Deportes', 'Equipamiento deportivo, ropa deportiva y accesorios para ejercicio', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/Lote+De+Zapatos+Para+Niña+Talla+Bubble+Hummers.(3).webp'),
     (6, 'Salud y Belleza', 'Productos de cuidado personal, cosméticos, suplementos y bienestar', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+12+Apple+(128+Gb)+-+Blanco+Audífonos+Cable3.webp'),
     (7, 'Juguetes y Juegos', 'Juguetes educativos, juegos de mesa, videojuegos y artículos para niños', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+12+Apple+(128+Gb)+-+Blanco+Audífonos+Cable2.webp'),
     (8, 'Otros', 'Productos variados que no se ajustan a las categorías anteriores', 'https://aplication-web-storage.s3.us-east-2.amazonaws.com/products/iPhone+12+Apple+(128+Gb)+-+Blanco+Audífonos+Cable.webp')

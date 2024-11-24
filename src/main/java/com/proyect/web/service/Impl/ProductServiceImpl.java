@@ -254,7 +254,18 @@ public class ProductServiceImpl implements ProductService {
             throw new InvalidOperationException("No está autorizado para eliminar este producto");
         }
 
+
         try {
+            if (product.getTransactions() != null) {
+                product.getTransactions().clear();
+            }
+            if (product.getImages() != null) {
+                product.getImages().clear();
+            }
+            if (product.getStock() != null) {
+                product.setStock(null);
+            }
+
             productRepository.delete(product);
         } catch (InvalidOperationException e) {
             throw e;

@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -17,6 +18,8 @@ public class TransactionDTO {
     private Long id;
     private Long buyerId;
     private Long productId;
+    private List<String> imageUrls;
+    private String productName;
     private String userName;
     private BigDecimal salePrice;
     private LocalDateTime transactionDate;

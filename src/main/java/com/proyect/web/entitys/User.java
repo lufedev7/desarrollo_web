@@ -66,6 +66,6 @@ public class User {
     private Set<Rol> roles = new HashSet<>();
 
     @Schema(description = "Transacciones de compra realizadas por el usuario")
-    @OneToMany(mappedBy = "buyer")
+    @OneToMany(mappedBy = "buyer", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Transaction> purchases = new HashSet<>();
 }
