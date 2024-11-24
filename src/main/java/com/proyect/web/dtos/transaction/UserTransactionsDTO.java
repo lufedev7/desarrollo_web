@@ -1,6 +1,7 @@
 package com.proyect.web.dtos.transaction;
 
 import com.proyect.web.dtos.user.UserDTO;
+import com.proyect.web.dtos.user.UserResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserTransactionsDTO {
-    private UserDTO user;
+    private UserResponseDTO userResponseDTO;
     private List<TransactionDTO> buyerTransactions;
     private int buyerTransactionsPageNo;
     private int buyerTransactionsPageSize;
