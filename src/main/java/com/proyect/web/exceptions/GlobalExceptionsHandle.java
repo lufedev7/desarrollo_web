@@ -1,6 +1,9 @@
 package com.proyect.web.exceptions;
 
 import com.proyect.web.dtos.otherFuntionalities.ErrorDetails;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -20,6 +23,14 @@ import java.util.Map;
 
 
 @ControllerAdvice
+@io.swagger.v3.oas.annotations.responses.ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Solicitud inválida",
+                content = @Content(schema = @Schema(implementation = ErrorDetails.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Recurso no encontrado",
+                content = @Content(schema = @Schema(implementation = ErrorDetails.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Error interno del servidor",
+                content = @Content(schema = @Schema(implementation = ErrorDetails.class)))
+})
 public class GlobalExceptionsHandle extends ResponseEntityExceptionHandler{
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorDetails>  checkResourceNotFoundExeption(ResourceNotFoundException exception, WebRequest webRequest){

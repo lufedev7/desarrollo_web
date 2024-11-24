@@ -245,15 +245,16 @@ public class ProductServiceImpl implements ProductService {
         User currentUser = userRepository.findByUserNameOrEmail(currentUserEmail, currentUserEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", 0));
 
-        if (!product.getUser().getId().equals(currentUser.getId())) {
+        boolean isAdmin = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+        boolean isOwner = product.getUser().getId().equals(currentUser.getId());
+
+        // Lanza excepción solo si NO es admin Y NO es el dueño
+        if (!isAdmin && !isOwner) {
             throw new InvalidOperationException("No está autorizado para eliminar este producto");
         }
 
         try {
-            if (product.getIsSold()) {
-                throw new InvalidOperationException("No se puede eliminar un producto que ya está vendido");
-            }
-
             productRepository.delete(product);
         } catch (InvalidOperationException e) {
             throw e;
@@ -493,21 +494,26 @@ public class ProductServiceImpl implements ProductService {
         dto.setProductId(product.getProductId());
         dto.setProductName(product.getProductName());
 
+        // Obtener categoryId y categoryName
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getProductCategoryId());
+            dto.setCategoryName(product.getCategory().getCategoryName()); // Asumiendo que el método getName() existe en la clase Category
         }
 
         dto.setProductDescription(product.getProductDescription());
         dto.setIsNew(product.getIsNew());
 
-        if (product.getUser() != null) {
-            dto.setUserId(product.getUser().getId());
+        // Obtener userId y userName
+        if (product.getUser () != null) {
+            dto.setUserId(product.getUser ().getId());
+            dto.setUserName(product.getUser ().getUserName()); // Asumiendo que el método getUser Name() existe en la clase User
         }
 
         dto.setOriginalPrice(product.getOriginalPrice());
         dto.setSalePrice(product.getSalePrice());
         dto.setIsSold(product.getIsSold());
 
+        // Obtener imágenes
         if (product.getImages() != null) {
             List<String> imageUrls = product.getImages().stream()
                     .filter(Objects::nonNull)
@@ -518,8 +524,11 @@ public class ProductServiceImpl implements ProductService {
             dto.setImageUrls(new ArrayList<>());
         }
 
+        // Obtener stockQuantity
         if (product.getStock() != null) {
             dto.setStockQuantity(product.getStock().getQuantity());
+        } else {
+            dto.setStockQuantity(1);
         }
 
         return dto;

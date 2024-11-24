@@ -8,6 +8,9 @@ import com.proyect.web.exceptions.InvalidOperationException;
 import com.proyect.web.exceptions.ResourceNotFoundException;
 import com.proyect.web.responses.ApiResponse;
 import com.proyect.web.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import utils.AppConstants;
 
 import java.util.Map;
 
+@Tag(name = "Productos", description = "API para la gestión de productos")
 @RestController
 @RequestMapping("/api/products")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -32,8 +36,16 @@ public class ProductController {
 
     //BASIC CRUD
 
+    @Operation(summary = "Crear nuevo producto",
+            description = "Crea un nuevo producto en el sistema")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201",
+            description = "Producto creado exitosamente"
+    )
     @PostMapping("/new")
-    public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductCreateDTO productDTO) {
+    public ResponseEntity<ProductDTO> createProduct(
+            @Parameter(description = "Datos del nuevo producto", required = true)
+            @RequestBody ProductCreateDTO productDTO) {
         try {
             ProductDTO createdProduct = productService.createProduct(productDTO);
             return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
@@ -44,11 +56,17 @@ public class ProductController {
         }
     }
 
+    @Operation(summary = "Obtener productos paginados",
+            description = "Obtiene una lista paginada de todos los productos")
     @GetMapping("/page")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getAllProductsPaginated(
+            @Parameter(description = "Número de página")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @Parameter(description = "Tamaño de página")
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @Parameter(description = "Campo para ordenar")
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @Parameter(description = "Dirección del ordenamiento")
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
         if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
@@ -60,9 +78,13 @@ public class ProductController {
         );
     }
 
+    @Operation(summary = "Actualizar producto",
+            description = "Actualiza un producto existente")
     @PutMapping("update/{id}")
     public ResponseEntity<ProductDTO> updateProduct(
+            @Parameter(description = "ID del producto", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Datos actualizados del producto")
             @RequestBody ProductUpdateDTO productDTO) {
         try {
             ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
@@ -74,8 +96,12 @@ public class ProductController {
         }
     }
 
+    @Operation(summary = "Eliminar producto",
+            description = "Elimina un producto del sistema")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deleteProduct(
+            @Parameter(description = "ID del producto a eliminar", required = true)
+            @PathVariable Long id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
@@ -105,8 +131,11 @@ public class ProductController {
 
     //ADDITIONALS
 
+    @Operation(summary = "Obtener producto por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id) {
+    public ResponseEntity<ProductDTO> getProduct(
+            @Parameter(description = "ID del producto", required = true)
+            @PathVariable Long id) {
         try {
             ProductDTO product = productService.getProduct(id);
             return ResponseEntity.ok(product);
@@ -115,9 +144,13 @@ public class ProductController {
         }
     }
 
+    @Operation(summary = "Obtener productos por usuario",
+            description = "Obtiene una lista paginada de productos de un usuario específico")
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getProductsByUser(
+            @Parameter(description = "ID del usuario", required = true)
             @PathVariable Long userId,
+            @Parameter(description = "Parámetros de paginación")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
@@ -134,12 +167,23 @@ public class ProductController {
         );
     }
 
+    @Operation(summary = "Obtener productos por categoría",
+            description = "Obtiene una lista paginada de productos de una categoría específica")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+            description = "Productos recuperados exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+            description = "Categoría no encontrada")
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getProductsByCategory(
+            @Parameter(description = "ID de la categoría", required = true)
             @PathVariable Long categoryId,
+            @Parameter(description = "Número de página")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @Parameter(description = "Tamaño de página")
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @Parameter(description = "Campo para ordenar")
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @Parameter(description = "Dirección del ordenamiento (ASC/DESC)")
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
         if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
@@ -153,8 +197,18 @@ public class ProductController {
         );
     }
 
+    @Operation(summary = "Marcar producto como vendido",
+            description = "Actualiza el estado de un producto a vendido")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+            description = "Producto marcado como vendido exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403",
+            description = "Usuario no autorizado para realizar esta acción")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+            description = "Producto no encontrado")
     @PatchMapping("/{id}/sold")
-    public ResponseEntity<ProductDTO> markProductAsSold(@PathVariable Long id) {
+    public ResponseEntity<ProductDTO> markProductAsSold(
+            @Parameter(description = "ID del producto", required = true)
+            @PathVariable Long id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
@@ -173,12 +227,23 @@ public class ProductController {
         }
     }
 
+    @Operation(summary = "Obtener productos relacionados",
+            description = "Obtiene una lista paginada de productos relacionados con un producto específico")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+            description = "Productos relacionados encontrados exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+            description = "Producto no encontrado")
     @GetMapping("/{productId}/related")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getRelatedProducts(
+            @Parameter(description = "ID del producto", required = true)
             @PathVariable Long productId,
+            @Parameter(description = "Número de página")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @Parameter(description = "Tamaño de página")
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @Parameter(description = "Campo para ordenar")
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @Parameter(description = "Dirección del ordenamiento")
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
         if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);
@@ -192,11 +257,21 @@ public class ProductController {
         );
     }
 
+    @Operation(summary = "Obtener mis productos",
+            description = "Obtiene una lista paginada de los productos del usuario autenticado")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+            description = "Productos recuperados exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401",
+            description = "Usuario no autenticado")
     @GetMapping("/my-products")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> getMyProducts(
+            @Parameter(description = "Número de página")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @Parameter(description = "Tamaño de página")
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @Parameter(description = "Campo para ordenar")
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @Parameter(description = "Dirección del ordenamiento")
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -213,12 +288,23 @@ public class ProductController {
         );
     }
 
+    @Operation(summary = "Buscar productos",
+            description = "Busca productos por término de búsqueda")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+            description = "Búsqueda realizada exitosamente")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
+            description = "Parámetros de búsqueda inválidos")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<ProductPageResponseDTO>> searchProducts(
-            @RequestParam(required = true) String query,
+            @Parameter(description = "Término de búsqueda", required = true)
+            @RequestParam String query,
+            @Parameter(description = "Número de página")
             @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int pageNumber,
+            @Parameter(description = "Tamaño de página")
             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @Parameter(description = "Campo para ordenar")
             @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY) String sortBy,
+            @Parameter(description = "Dirección del ordenamiento")
             @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION) String sortDir) {
 
         if (pageSize < 1) pageSize = Integer.parseInt(AppConstants.DEFAULT_PAGE_SIZE);

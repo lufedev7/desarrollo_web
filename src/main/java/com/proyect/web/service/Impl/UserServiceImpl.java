@@ -1,7 +1,11 @@
 package com.proyect.web.service.Impl;
 
+import com.proyect.web.dtos.product.ProductDTO;
+import com.proyect.web.dtos.product.ProductPageResponseDTO;
 import com.proyect.web.dtos.user.UserDTO;
+import com.proyect.web.dtos.user.UserPageResponseDTO;
 import com.proyect.web.dtos.user.UserResponseDTO;
+import com.proyect.web.entitys.Product;
 import com.proyect.web.entitys.Rol;
 import com.proyect.web.entitys.User;
 import com.proyect.web.exceptions.ResourceNotFoundException;
@@ -13,6 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -57,19 +65,28 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<UserResponseDTO> getAll() {
-        try {
-            List<User> users = userRepository.findAll();
-            if(users.isEmpty()) {
-                throw new ResourceNotFoundException("Usuarios", "lista", 0);
-            }
-            return users.stream()
-                    .map(this::mapToResponseDTO)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            throw new WebException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al obtener la lista de usuarios");
-        }
+    public UserPageResponseDTO getAllUsers(int pageNumber, int pageSize, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(sortBy).ascending() :
+                Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Page<User> pageUsers = userRepository.findAll(pageable);
+        List<User> users = pageUsers.getContent();
+
+        List<UserResponseDTO> content = users.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+
+        UserPageResponseDTO userPageResponseDTO = new UserPageResponseDTO();
+        userPageResponseDTO.setContent(content);
+        userPageResponseDTO.setPageNo(pageUsers.getNumber());
+        userPageResponseDTO.setPageSize(pageUsers.getSize());
+        userPageResponseDTO.setTotalElements(pageUsers.getTotalElements());
+        userPageResponseDTO.setTotalPages(pageUsers.getTotalPages());
+        userPageResponseDTO.setLast(pageUsers.isLast());
+
+        return userPageResponseDTO;
     }
 
     @Override
@@ -179,6 +196,38 @@ public class UserServiceImpl implements UserService {
         Optional<User> userOptional = userRepository.findByUserNameOrEmail(username, username);
         User user = userOptional.orElseThrow(() -> new ResourceNotFoundException("Usuario", "username/email", 0));
         return mapToResponseDTO(user);
+    }
+
+    @Override
+    public UserPageResponseDTO searchUsers(String query, int pageNumber, int pageSize, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ?
+                Sort.by(sortBy).ascending() :
+                Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        Page<User> pageUsers = userRepository.findByUserNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                query, query, pageable);
+
+        List<User> users = pageUsers.getContent();
+
+        if(users.isEmpty()) {
+            throw new ResourceNotFoundException("Usuarios", "búsqueda", 0);
+        }
+
+        List<UserResponseDTO> content = users.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+
+        UserPageResponseDTO userPageResponseDTO = new UserPageResponseDTO();
+        userPageResponseDTO.setContent(content);
+        userPageResponseDTO.setPageNo(pageUsers.getNumber());
+        userPageResponseDTO.setPageSize(pageUsers.getSize());
+        userPageResponseDTO.setTotalElements(pageUsers.getTotalElements());
+        userPageResponseDTO.setTotalPages(pageUsers.getTotalPages());
+        userPageResponseDTO.setLast(pageUsers.isLast());
+
+        return userPageResponseDTO;
     }
 
     private UserResponseDTO mapToResponseDTO(User user) {

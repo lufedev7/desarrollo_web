@@ -13,9 +13,11 @@ public class ProductDTO {
     private Long productId;
     private String productName;
     private Long categoryId;
+    private String categoryName;
     private String productDescription;
     private Boolean isNew;
     private Long userId;
+    private String userName;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;
     private Boolean isSold;
